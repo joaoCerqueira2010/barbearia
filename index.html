@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navalhas Barber - Agendamento</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+  body {
+    background: #1a1a1a;
+    color: #f0f0f0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+
+  .container {
+    background: #242424;
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    border: 1px solid #333;
+  }
+
+  .logo {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .logo h1 {
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: #d4af37;
+  }
+
+  .logo span {
+    font-size: 12px;
+    color: #888;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .logo .navalha {
+    font-size: 32px;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: #bbb;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 12px;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 15px;
+    margin-bottom: 16px;
+    outline: none;
+    transition: border 0.2s;
+  }
+
+  input:focus, select:focus {
+    border-color: #d4af37;
+  }
+
+  button {
+    width: 100%;
+    padding: 14px;
+    background: #d4af37;
+    color: #1a1a1a;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  button:hover { background: #e6c04a; }
+  button:active { transform: scale(0.98); }
+
+  .agendamentos {
+    margin-top: 28px;
+    border-top: 1px solid #333;
+    padding-top: 20px;
+  }
+
+  .agendamentos h2 {
+    font-size: 16px;
+    color: #d4af37;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+
+  .item {
+    background: #1a1a1a;
+    border-left: 3px solid #d4af37;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .item small { color: #888; display: block; margin-top: 2px; }
+
+  .remover {
+    background: transparent;
+    border: none;
+    color: #e74c3c;
+    cursor: pointer;
+    font-size: 18px;
+    width: auto;
+    padding: 0 6px;
+  }
+
+  .vazio { color: #666; font-size: 13px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo">
+    <span class="navalha">💈</span>
+    <h1>NAVALHAS BARBER</h1>
+    <span>Agendamento Online</span>
+  </div>
+
+  <form id="form">
+    <label>Nome do cliente</label>
+    <input type="text" id="nome" placeholder="Ex: João Silva" required>
+
+    <label>Serviço</label>
+    <select id="servico" required>
+      <option value="">Selecione...</option>
+      <option value="Corte Simples">Corte Simples - R$ 30</option>
+      <option value="Corte + Barba">Corte + Barba - R$ 55</option>
+      <option value="Barba">Barba - R$ 25</option>
+      <option value="Degradê">Degradê - R$ 40</option>
+      <option value="Pezinho">Pezinho - R$ 15</option>
+    </select>
+
+    <label>Data</label>
+    <input type="date" id="data" required>
+
+    <label>Horário</label>
+    <select id="hora" required>
+      <option value="">Selecione...</option>
+    </select>
+
+    <button type="submit">Agendar</button>
+  </form>
+
+  <div class="agendamentos">
+    <h2>📅 AGENDAMENTOS</h2>
+    <div id="lista"><p class="vazio">Nenhum agendamento ainda.</p></div>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('form');
+  const lista = document.getElementById('lista');
+  const selectHora = document.getElementById('hora');
+  const inputData = document.getElementById('data');
+
+  // Horários disponíveis
+  const horarios = [
+    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
+    '16:00', '16:30', '17:00', '17:30', '18:00'
+  ];
+
+  let agendamentos = JSON.parse(localStorage.getItem('navalhas')) || [];
+
+  // Impede datas passadas
+  const hoje = new Date().toISOString().split('T')[0];
+  inputData.min = hoje;
+
+  // Preenche horários
+  function carregarHorarios() {
+    selectHora.innerHTML = '<option value="">Selecione...</option>';
+    horarios.forEach(h => {
+      const opt = document.createElement('option');
+      opt.value = h;
+      opt.textContent = h;
+      selectHora.appendChild(opt);
+    });
+  }
+  carregarHorarios();
+
+  // Renderiza lista
+  function renderizar() {
+    if (agendamentos.length === 0) {
+      lista.innerHTML = '<p class="vazio">Nenhum agendamento ainda.</p>';
+      return;
+    }
+
+    // Ordena por data + hora
+    agendamentos.sort((a, b) =>
+      (a.data + a.hora).localeCompare(b.data + b.hora)
+    );
+
+    lista.innerHTML = agendamentos.map((ag, i) => `
+      <div class="item">
+        <div>
+          <strong>${ag.nome}</strong>
+          <small>${ag.servico} • ${formatarData(ag.data)} às ${ag.hora}</small>
+        </div>
+        <button class="remover" onclick="remover(${i})" title="Remover">✕</button>
+      </div>
+    `).join('');
+  }
+
+  function formatarData(data) {
+    const [ano, mes, dia] = data.split('-');
+    return `${dia}/${mes}/${ano}`;
+  }
+
+  function remover(index) {
+    agendamentos.splice(index, 1);
+    localStorage.setItem('navalhas', JSON.stringify(agendamentos));
+    renderizar();
+  }
+
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+
+    const nome = document.getElementById('nome').value.trim();
+    const servico = document.getElementById('servico').value;
+    const data = inputData.value;
+    const hora = selectHora.value;
+
+   
+    
+    const conflito = agendamentos.some(a => a.data === data && a.hora === hora);
+    if (conflito) {
+      alert('⚠️ Este horário já está ocupado. Escolha outro.');
+      return;
+    }
+
+    agendamentos.push({ nome, servico, data, hora });
+    localStorage.setItem('navalhas', JSON.stringify(agendamentos));
+
+    form.reset();
+    carregarHorarios();
+    renderizar();
+    alert(`✅ Agendamento confirmado!\n\n${nome}\n${servico}\n${formatarData(data)} às ${hora}`);
+  });
+
+  renderizar();
+</script>
+</body>
+</html>
